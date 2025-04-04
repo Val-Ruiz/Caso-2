@@ -1,0 +1,82 @@
+---
+title: "Caso2"
+format: pdf
+editor: visual
+---
+
+```{r}
+install.packages("pacman")
+library(pacman)
+```
+
+```{r}
+p_load("dplyr", "readxl", "tidyverse")
+```
+
+```{r Posibles variables}
+depositos_minerales <- read.csv("deposit.csv")
+
+```
+
+```{r Eliminar duplicados de agua}
+estres_hidrico <- read.csv2("Water_stress.csv")
+estres_hidrico <- data.frame("ISO" =estres_hidrico$iso_a3, "Pais"=estres_hidrico$name_0, "Estres" = estres_hidrico$label, "RegionWB"= estres_hidrico$wb_region, stringsAsFactors = T)
+estres_hidrico <- estres_hidrico[!duplicated(estres_hidrico$ISO),]
+#https://es.stackoverflow.com/questions/162937/eliminar-filas-con-id-duplicado-en-r
+estres_hidrico <- filter(estres_hidrico, Estres != "NoData")
+```
+
+```{r Número de depótitos mineros}
+ndepositos <-depositos_minerales%>%
+  group_by(country)%>%
+  tally()
+colnames(ndepositos)<- c("Pais", "n")
+```
+
+```{r}
+Environmental_Performance <- read.csv("epi2020results20200604.csv")
+Environmental_Performance <- Environmental_Performance[3:4]
+colnames(Environmental_Performance) <- c( "Pais", "EPI")
+```
+
+
+```{r}
+df_integral <- estres_hidrico %>% inner_join(ndepositos, by ="Pais", keep = F)
+df_integral <- df_integral %>% inner_join(Environmental_Performance, by = "Pais", keep=F)
+
+```
+
+
+```{r}
+produccion_energia <- read.csv("Energy_Output.csv")
+produccion_energia <- select(produccion_energia, c(Country.Code, X2015..YR2015.))
+colnames(produccion_energia) <- c("ISO", "A.2015.")
+df_integral <- df_integral %>% inner_join(produccion_energia, by = "ISO", keep=F)
+```
+
+```{r}
+sector_forestal <- read_xlsx("fao forestry contribution.xlsx")
+colnames(sector_forestal) <- c("Pais", "Fuerza_Trabajo", "PIB")
+df_integral <- df_integral %>% inner_join(sector_forestal, by = "Pais")
+```
+
+
+```{r}
+Global_material_flows <- read.csv("GMFD.csv")
+GMF <- select(Global_material_flows, c(Country, Category, Flow.code, X2014))
+GMF <- GMF %>%
+  filter(GMF$Flow.code == "PTB") #Physical Trade Balance
+GMF$Category <- as.factor(GMF$Category)
+```
+
+```{r}
+GMF <- GMF %>%spread(Category, X2014)
+GMF <- GMF[ , -c(2)] #https://youtu.be/PurMJhCBB_A?feature=shared
+colnames(GMF)[1] <- "Pais"
+```
+
+```{r}
+df_integral <- df_integral %>% inner_join(GMF, by = "Pais", keep=F)
+```
+
+
