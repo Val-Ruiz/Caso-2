@@ -16,14 +16,41 @@ p_load("nnet","broom", "tidyverse",
 datos <- read.csv("Datos.csv")
 head(datos)
 ```
+
 ```{r}
+datos$EPI_niveles <- datos$EPI  #Copia para pasar de variable numérica a categoría 
 datos$EPI_niveles <- cut(datos$EPI_niveles, breaks=3, labels = c("Bajo", "Medio", "Alto"))
+
+#Convertir estas variables chr a factores
 datos$Estres <- as.factor(datos$Estres)
 datos$RegionWB <- as.factor(datos$RegionWB)
 ```
 
+```{r Exploración de los datos}
+hist(datos$EPI)
+
+```
+
+```{r Frecuencias de nivel de estres hídrico por país}
+#En lugar de summarize se aplica tally
+
+Estres_x_region <- datos %>%  # Se selecciona la base de datos 
+  group_by(RegionWB, Estres) %>%  # Se agrupan los yacimientos por país
+  tally()  # Se cuenta el número de registros para cada  grupo
+colnames(Estres_x_region) <- c("Region", "Nivel", "Frecuencia")
+```
+
 
 ```{r}
+ggplot(Estres_x_region, aes(x = Nivel, y = Frecuencia)) +
+  geom_bar(
+    aes(fill = Region), stat = "identity", 
+    position = position_dodge (0.9)
+  )
+```
+
+```{r Ejemplo del modelo de regresión}
+#Regresión logística multinomial
 fit1 <- multinom(EPI_niveles ~ Estres + RegionWB + ndepositos, data = datos)
 
 tidy(fit1)%>%
@@ -35,5 +62,4 @@ tidy(fit1)%>%
 fit1$AIC
 ```
 
-AIC más peueño, mejor adaptación a los datos
-
+Recordatorio: AIC más pequeño, mejor adaptación a los datos
