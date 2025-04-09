@@ -1,0 +1,39 @@
+---
+title: "Regresión logística"
+format: html
+editor: visual
+---
+
+```{r Paquetes}
+library(pacman)
+p_load("nnet","broom", "tidyverse", 
+       "ggplot2", "knitr", "kableExtra",
+       "gtsummary", "ggeffects")
+
+```
+
+```{r}
+datos <- read.csv("Datos.csv")
+head(datos)
+```
+```{r}
+datos$EPI_niveles <- cut(datos$EPI_niveles, breaks=3, labels = c("Bajo", "Medio", "Alto"))
+datos$Estres <- as.factor(datos$Estres)
+datos$RegionWB <- as.factor(datos$RegionWB)
+```
+
+
+```{r}
+fit1 <- multinom(EPI_niveles ~ Estres + RegionWB + ndepositos, data = datos)
+
+tidy(fit1)%>%
+  kable() %>%
+  kable_styling("basic", full_width = F)
+```
+
+```{r}
+fit1$AIC
+```
+
+AIC más peueño, mejor adaptación a los datos
+
