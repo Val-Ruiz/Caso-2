@@ -1,0 +1,152 @@
+---
+title: "Gráficos y análisis"
+format: pdf
+editor: visual
+---
+
+```{r}
+Diversidad <- datos %>%
+  rowwise() %>%
+  mutate(Diversidad = sum(c_across(ends_with(".X")) > 0, na.rm = TRUE)) %>%
+  ungroup() %>%
+  group_by(RegionWB) %>%
+  summarise(diversidad = mean(diversidad)) %>%
+  arrange(desc(diversidad))
+Diversidad
+
+# Visualizar
+ggplot(diversidad, aes(x = reorder(RegionWB, diversidad), y = diversidad)) +
+  geom_col(fill = "forestgreen") +
+  coord_flip() +
+  labs(title = "Materiales existentes por región", x = "Región", y = "Tipos de recursos consumidos")
+```
+
+```{r}
+summary(datos)
+```
+
+instalacion del paquete scales para quitar los valores con notacion cientifica
+```{r}
+install.packages("scales")
+library(scales)
+```
+
+
+```{r}
+Biomasa_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Biomass.x, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Biomasa_region
+
+ggplot(Biomasa_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "green") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Biomasa por región",
+    x = "Región",
+    y = "Biomasa"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+En el conjunto de datos, las columnas extraidas de la base de datos "Flujos de Materiales Globales" (GMF) que representan flujos de materiales (como biomasa, combustibles fósiles, minerales, etc.). 
+Estos flujos pueden ser: 
+Positivos → cuando un país produce, importa o acumula biomasa.
+Negativos → cuando un país exporta, pierde o consume biomasa.
+
+Entonces, si un país tiene biomasa negativa, y se sumas todos los países de una región, el total puede dar negativo.
+
+
+```{r}
+Energia_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Energía..GWh., na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Energia_region
+
+ggplot(Energia_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "blue") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Energía por región",
+    x = "Región",
+    y = "Energía"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+```{r}
+Combustible_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Fossil.fuels.x, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Combustible_region
+
+ggplot(Combustible_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "black") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Combustible por región",
+    x = "Región",
+    y = "Combustible"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+```{r}
+Metal_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Metal.ores.x, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Metal_region
+
+ggplot(Metal_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "gray") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Metales por región",
+    x = "Región",
+    y = "Metales"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+```{r}
+Mix_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Mixed.and.complex.products.nec..x, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+
+ggplot(Mix_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "pink") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Productos mixtos por región",
+    x = "Región",
+    y = "Productos mixtos"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+```{r}
+NoMetal_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Non.metallic.minerals.x, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+
+ggplot(NoMetal_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "orange") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "No-Metales por región",
+    x = "Región",
+    y = "No-Metales"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
