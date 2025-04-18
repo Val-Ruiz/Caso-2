@@ -1,5 +1,16 @@
 # DESEMPEÑO AMBIENTAL Y ACTIVIDADES EXTRACTIVAS
 
+Justificación
+
+Como un fenómeno del sistema que ha surgido en el mundo, la dotación y flujo de recursos naturales renovables y no renovables (agua, energía eléctrica, combustibles, minerales, etc.) ha sido una de las actividades que ha generado un gran impacto económico, aunque también lo ha tenido en el aspecto ambiental, para cada nación del mundo y para la sociedad misma. Dichas actividades han generado a lo largo del tiempo una alta demanda de estos recursos, pues la creciente población mundial ha ejercido una alta presión en los ecosistemas y su biodiversidad, y ha comprometido su sostenibilidad.
+
+Esta situación ha puesto en aprietos a muchas naciones, ya que la distribución de recursos no es la misma y existen regiones en las que carecen de determinado recurso, tienen limitaciones climáticas y geográficas, no tienen las tecnologías o la infraestructura suficiente para acceder al recurso. Lo que ha provocado esta situación es que muchos países hayan optado por estrategias que les permitan el acceso a estos recursos para que puedan cumplir con las necesidades que día con día van surgiendo en su población. Dicha estrategia tiene como nombre “Comercio internacional” y con él surgen dos actividades fundamentales:
+
+Importación, la compra u obtención de bienes y servicios provenientes de otro país y que por tanto son introducidos al país que los compró.
+
+Exportación, la venta o envío de bienes y servicios de un país para ser aprovechados por otro país, es decir que son extraídos del país que los vendió.
+
+
 Inicialmente se planteó trabajar con la base de datos de Flujos Materiales Globales (GMF), la cual contempla para cada país, el balance de Biomasa, Combustibles fósiles, materiales excavados, minerales metálico, minerales no metálicos y otros productos mixtos. De estos se clasifica su flujo como consumo interno, Importaciones, Exportaciones y balances a partir de estos. 
 
 Se optó por completar la investigación con otras bases de datos relacionadas a las categorías de los flujos
