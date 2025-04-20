@@ -5,27 +5,37 @@ editor: visual
 ---
 
 ```{r Paquetes}
-library(pacman)
-p_load("nnet","broom", "tidyverse", 
-       "ggplot2", "knitr", "kableExtra",
-       "gtsummary", "ggeffects")
+library(pacman) #Administrador de paquetes
+p_load("nnet", #Modelo logístico multinomial
+       "broom","kableExtra", "gtsummary", # ordenar la salida de un modelo
+       "tidyverse", "dplyr",  "knitr", #manipulación de datos
+       "ggplot2", "ggeffects", #gráficas
+       )
 
 ```
 
-```{r}
+
+# Datos
+```{r Lectura de datos}
 datos <- read.csv("Datos.csv")
 head(datos)
 ```
 
+#Exploración de datos
 ```{r}
 datos$EPI_niveles <- datos$EPI  #Copia para pasar de variable numérica a categoría 
 datos$EPI_niveles <- cut(datos$EPI_niveles, breaks=3, labels = c("Bajo", "Medio", "Alto"))
 
 #Convertir estas variables chr a factores
-datos$Estres <- as.factor(datos$Estres)
-datos$RegionWB <- as.factor(datos$RegionWB)
-```
 
+datos$Estres <- as.factor(datos$Estres)
+datos$Estres <- factor(datos$Estres, ordered = TRUE, #Ordenar los niveles del factor
+                       levels = c("Low (<10%)", "Low - Medium (10-20%)",  
+                                  "Medium - High (20-40%)", "High (40-80%)",
+                                  "Extremely High (>80%)" ))
+datos$RegionWB <- as.factor(datos$RegionWB)
+
+```
 
 ```{r Frecuencias de nivel de estres hídrico por país}
 #En lugar de summarize se aplica tally
@@ -36,7 +46,7 @@ Estres_x_region <- datos %>%  # Se selecciona la base de datos
 colnames(Estres_x_region) <- c("Region", "Nivel", "Frecuencia")
 ```
 
-```{r}
+```{r Distribución estrés hídrico}
 ggplot(Estres_x_region, aes(x = Nivel, y = Frecuencia)) +
   geom_bar(
     aes(fill = Region), stat = "identity", 
@@ -53,12 +63,27 @@ width = .1,
 show.legend = FALSE) 
 ```
 
+
+
+```{r}
+p_load(GGally)
+datos <- datos[-12]
+```
+
+```{r Coordenadas paralelas}
+ggparcoord(data = datos,
+           columns= 11:21,
+           groupColumn = "RegionWB",
+           scale="center",
+           title = "Coordenadas paralelas de Flujos Mundiales")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+           
+```
+
 # Modelo de Regresión Logística Multinomial
 
+Este modelo se basa en la siguiente ecuación $$ \ln(\frac{P_{N}}{P_{A}}) = β_{0} + β_{1}X_{1} + ... + β_{k}X_{k} $$ En donde se compara la probabilidad de una categoría $P_n$ contra la probabilidad de una categoría de referencia $P_A$, y el lado derecho de la ecuación corresponde al coeficiente de la comparación
 
-Este modelo se basa en la siguiente ecuación
-$$ \ln(\frac{P_{N}}{P_{A}}) = β_{0} + β_{1}X_{1} + ... + β_{k}X_{k} $$
-En donde se compara la probabilidad de una categoría $P_n$ contra la probabilidad de una categoría de referencia $P_A$, y el lado derecho de la ecuación corresponde al coeficiente de la comparación 
 ```{r Modelo de regresión}
 #Regresión logística multinomial
 #Describir el nivel de desempeño ambiental a partir de el flujo de materiales
@@ -72,22 +97,18 @@ fit_1 <- multinom(EPI_niveles ~ Estres +
 
 ```
 
-Para interpretar el modelo de regresión logistica se suele trabajar con los OD los cuales se obtienen al despejar el logaritmo la ecuación dada:
-$$ \frac{P_{N}}{P_{A}} = e^{β_{0} + β_{1}X_{1} + ... + β_{k}X_{k}}$$
+Para interpretar el modelo de regresión logistica se suele trabajar con los Odd Ratios (OR) los cuales se obtienen al despejar el logaritmo la ecuación dada: $$ \frac{P_{N}}{P_{A}} = e^{β_{0} + β_{1}X_{1} + ... + β_{k}X_{k}}$$
 
-```{r}
+```{r Obtención Odd Ratios}
 OR_1 <- exp(coefficients(fit_1))
-```
-
-```{r}
 OR_1
 ```
+
 El modelo 1 tomo como referencia un nivel de EPI bajo con un nivel de estres hídrico Extremely High.
 
-Se puede observar que la mayor probabilidad del modelo corresponde al EPI Alto con un bajo nivel de estres hídrico. Se podría razonar que el EPI y el nivel de estres son inversamente proporcionales, sin embargo también existe una alta probabilidad de que países con alto estres hidrico tengan en EPI alto por lo que se descarta la primera explicación. 
+Se puede observar que la mayor probabilidad del modelo corresponde al EPI Alto con un bajo nivel de estres hídrico. Se podría razonar que el EPI y el nivel de estres son inversamente proporcionales, sin embargo también existe una alta probabilidad de que países con alto estres hidrico tengan en EPI alto por lo que se descarta la primera explicación.
 
 Exceptuando el nivel de estres medio-alto, todos los niveles de estres tienen OD mayores a 1 por lo que tinen mayor probabilidad de explicar el EPI que el nivel base. Las otras variables tienen OD cercanos a uno o menores, lo que indica que tienen menores probabilidades de predecir el EPI que la categoría base.
-
 
 ```{r}
 #Flujo de materias primas
@@ -103,7 +124,6 @@ OR_2
 
 Este modelo también usa EPI Bajo como categoría de base. En este modelo todos los OD son iguales o muy cercanos a 1 por lo que todas las variables tienen prácticamente la misma capacidad de predicción.
 
-
 ```{r}
 #Flujo de productos
 fit_3 <- multinom (EPI_niveles ~ Mixed.and.complex.products.nec.+ 
@@ -115,9 +135,11 @@ fit_3 <- multinom (EPI_niveles ~ Mixed.and.complex.products.nec.+
 OR_3 <- exp(coefficients(fit_3))
 OR_3
 ```
+
 Similar al modelo 2, en el modelo 3 todas las variables se relacionan en la misma medida con la variable dependiente
 
 ## Comparando los modelos
+
 ```{r}
 fit1$AIC
 fit2$AIC
@@ -143,8 +165,44 @@ fit_completo <- multinom(EPI_niveles ~ Estres +
                     Waste.for.final.treatment.and.disposal, data = datos)
 fit_mejor$AIC
 ```
+
 Se logra mejorar el AIC por muy poco
 
 
+# Análisis multicriterio
+
+El siguiente analisis, TOPSIS, permite ordenar opciones de acuerdo al cumplimiento de criterios favorables o desfavorables
+En el ejemplo, se pueden identificar qué paises tienen mayor extracción y exportacion de biomasa junto con su mayor aparte al PIB, serviría para identificar los paises que dependen más de esta actividad y deberian tener sistemas de producción sustentable
+```{r Modelo Multicriterio}
+p_load("topsis") 
+
+#crear dataframe con las variables de interés y convertir a matriz
+matriz <- datos[c(17, 10,11)]
+matriz <- as.matrix(matriz)
+
+#Definir vector con el peso o importancia que se le da a cada variable
+ponderacion <- c(2,4,4) 
+
+#Definir el comportamiento que cada variable tendrá en el ranking. 
+# "-" si se priorizan los valores mínimos y "+" si se busca maximizar la variable 
+minmax <-c("-", "+", "-")
+
+
+multicriterio <- topsis(matriz, ponderacion, minmax) #Código del modelo
+multicriterio
+
+ranking <- arrange(as.data.frame(multicriterio), rank)
+ranking  # Visualización con el ranking en orden descendente
+
+```
+
+Nota: Si se quisiera incluir el Estres en un analisis multicriterio se tendría que convertir a una variable numérica, con el siguiente código
+
+matriz$Estres <- case_when(
+  matriz$Estres == "Low (<10%)" ~ 1,
+  matriz$Estres == "Low - Medium (10-20%)" ~ 2,
+  matriz$Estres =="Medium - High (20-40%)" ~ 3,
+  matriz$Estres == "High (40-80%)" ~ 4,
+  matriz$Estres == "Extremely High (>80%)" ~ 5)
 
 
