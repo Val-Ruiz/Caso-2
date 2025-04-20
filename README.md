@@ -2,13 +2,22 @@
 
 Justificación
 
-Como un fenómeno del sistema que ha surgido en el mundo, la dotación y flujo de recursos naturales renovables y no renovables (agua, energía eléctrica, combustibles, minerales, etc.) ha sido una de las actividades que ha generado un gran impacto económico, aunque también lo ha tenido en el aspecto ambiental, para cada nación del mundo y para la sociedad misma. Dichas actividades han generado a lo largo del tiempo una alta demanda de estos recursos, pues la creciente población mundial ha ejercido una alta presión en los ecosistemas y su biodiversidad, y ha comprometido su sostenibilidad.
+Como fenómeno global, la dotación y flujo de recursos naturales (renovables y no renovables como: agua, energía eléctrica, combustibles, minerales, etc.) ha sido una de las actividades que ha generado un profundo impacto económico y ambiental para cada nación del mundo y para la sociedad misma. Estas actividades antropogénicas han provocado, a lo largo del tiempo, una creciente demanda de dichos recursos, impulsada principalmente por el aumento constante de la población mundial. Crecimiento el cual ha ejercido una fuerte presión sobre los ecosistemas y su biodiversidad, comprometiendo seriamente su sostenibilidad.
 
-Esta situación ha puesto en aprietos a muchas naciones, ya que la distribución de recursos no es la misma y existen regiones en las que carecen de determinado recurso, tienen limitaciones climáticas y geográficas, no tienen las tecnologías o la infraestructura suficiente para acceder al recurso. Lo que ha provocado esta situación es que muchos países hayan optado por estrategias que les permitan el acceso a estos recursos para que puedan cumplir con las necesidades que día con día van surgiendo en su población. Dicha estrategia tiene como nombre “Comercio internacional” y con él surgen dos actividades fundamentales:
+Esta situación ha puesto en aprietos a muchas naciones, debido a que la distribución de estos recursos no es equitativa, lo que complica aún más la cobertura de las necesidades de su población. En relación a su ubicación geográfica, existen regiones en las que carecen de ciertos recursos, tambien es probable que afronten limitaciones climáticas y geográficas, o que no cuenten con las tecnologías ni la infraestructura suficiente para acceder a ellos. Como respuesta, muchos países han adoptado estrategias que les permitan asegurar el suministro de recursos indispensables para satisfacer las necesidades diarias que van surgiendo en su población. Una de estas estrategias es el “Comercio internacional”, el cual ha sido clave para dinamizar las economías, ampliar el acceso a insumos productivos y mejorar la capacidad de producción de los países.
 
-Importación, la compra u obtención de bienes y servicios provenientes de otro país y que por tanto son introducidos al país que los compró.
+El comercio internacional se sustenta en dos actividades fundamentales, según (SNICE, s.f.):
+La importación, es la compra o entrada de bienes y servicios provenientes de otro país y hacia el país que los compró.
+La exportación, es la venta o salida de bienes y servicios de un país hacia otro que los adquieren y utilizan.
 
-Exportación, la venta o envío de bienes y servicios de un país para ser aprovechados por otro país, es decir que son extraídos del país que los vendió.
+Actualmente, millones de toneladas de materias primas se trasladan diariamente entre naciones, formando complejas redes globales de intercambio. Este movimiento constante de recursos se enmarca en lo que se conoce como el metabolismo socioeconómico (Leon et al, 2020), un concepto que describe los flujos de energía y materiales que sostienen las actividades humanas. Así como los organismos vivos metabolizan sustancias para mantener activos, las sociedades modernas extraen recursos del medio ambiente, los transforman en bienes y servicios, y finalmente generan residuos. Este metabolismo social está profundamente vinculado al comercio internacional, ya que permite el traslado de materias primas, productos manufacturados y energía entre regiones, pero también transfiere impactos ambientales desde las zonas de extracción hasta las de consumo.
+Comprender el comercio internacional desde esta perspectiva no permite solo valorar su dimensión económica, sino también reflexionar sobre su papel en la presión ambiental global, en la equidad del acceso a recursos y en la urgencia de transitar hacia un modelo más sostenible.
+
+Referencias.
+Servicio Nacional de Informacion de Comercio Exterior (SNICE). (s.f.). Datos sobre Comercio Exterior. https://www.snice.gob.mx/cs/avi/snice/comerciointernacional.html 
+
+Leon M., Lewinsohn J. L. & Sánchez J. (2020). Balanza comercial e intercambio, uso y eficiencia de materiales en América Latina y el Caribe. Recursos Naturales y Desarrollo. Comisión Económica para América Latina y el Caribe (CEPAL).
+https://repositorio.cepal.org/server/api/core/bitstreams/37cae9e0-ee65-47ae-9e6d-c04011196ceb/content 
 
 
 Inicialmente se planteó trabajar con la base de datos de Flujos Materiales Globales (GMF), la cual contempla para cada país, el balance de Biomasa, Combustibles fósiles, materiales excavados, minerales metálico, minerales no metálicos y otros productos mixtos. De estos se clasifica su flujo como consumo interno, Importaciones, Exportaciones y balances a partir de estos. 
