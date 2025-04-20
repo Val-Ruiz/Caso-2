@@ -5,7 +5,6 @@ editor: visual
 ---
 
 ```{r}
-install.packages("scales") 
 library(scales) #Ajustar las gráficas
 library(car) #Manejar datos estadísticos 
 library(tidyverse) #Conjunto de paquetes
@@ -75,6 +74,18 @@ Negativos → cuando un país exporta, pierde o consume biomasa.
 
 Entonces, si un país tiene biomasa negativa, y se sumas todos los países de una región, el total puede dar negativo.
 
+```{r}
+ggplot(datos, aes(x = Biomass, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre la Biomasa y el EPI",
+    x = "Balanza de biomasa",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
 Distribución de energía.
 ```{r}
 Energia_region <- datos %>%
@@ -92,6 +103,18 @@ ggplot(Energia_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
     y = "Energía"
   ) +
   scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(datos, aes(x = Energía..GWh., y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre la Energía y el EPI",
+    x = "Balanza de Energía",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
   theme_minimal()
 ```
 
@@ -115,6 +138,18 @@ ggplot(Combustible_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
   theme_minimal()
 ```
 
+```{r}
+ggplot(datos, aes(x = Fossil.fuels, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre el Combustible y el EPI",
+    x = "Balanza de Combustible",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
 Distribución de metal.
 ```{r}
 Metal_region <- datos %>%
@@ -135,7 +170,19 @@ ggplot(Metal_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
   theme_minimal()
 ```
 
-Distribución de productos misctos y complejos.
+```{r}
+ggplot(datos, aes(x = Metal.ores, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre el Metal y el EPI",
+    x = "Balanza de Metal",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
+Distribución de productos mixtos y complejos.
 ```{r}
 Mix_region <- datos %>%
   group_by(RegionWB) %>%
@@ -151,6 +198,18 @@ ggplot(Mix_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
     y = "Productos mixtos"
   ) +
   scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+```{r}
+ggplot(datos, aes(x = Mixed.and.complex.products.nec., y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre Productos mixtos y el EPI",
+    x = "Balanza de Productos",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
   theme_minimal()
 ```
 
@@ -174,29 +233,15 @@ ggplot(NoMetal_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
   theme_minimal()
 ```
 
-
 ```{r}
-# Sumar varias categorías a nivel regional
-materiales_region <- datos %>%
-  group_by(RegionWB) %>%
-  summarise(
-    Biomasa = sum(Biomass, na.rm = TRUE),
-    Fósiles = sum(Fossil.fuels, na.rm = TRUE),
-    Minerales = sum(Metal.ores, na.rm = TRUE),
-    No_metalicos = sum(Non.metallic.minerals, na.rm = TRUE),
-    Suelo = sum(Excavated.earthen.materials..including.soil..nec, na.rm = TRUE), 
-    Metales = sum(Metal.ores, na.rm = TRUE),
-    Productos_mixtos = sum(Mixed.and.complex.products.nec., na.rm = TRUE))
-
-# Convertir a formato largo para ggplot
-materiales <- materiales_region %>%
-  pivot_longer(RegionWB, names_to = "Material", values_to = "Cantidad")
-
-ggplot(materiales, aes(x = reorder(RegionWB, Cantidad, sum()), y = Cantidad, fill = Material)) +
-  geom_col(position = "stack") +
-  coord_flip() +
-  labs(title = "Uso de materiales por región", x = "Región", y = "Cantidad total") +
-  scale_y_continuous(labels = comma) +
+ggplot(datos, aes(x = Non.metallic.minerals, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre el No-metales y el EPI",
+    x = "Balanza de No-metales",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
   theme_minimal()
 ```
 
@@ -223,33 +268,6 @@ Tamaño y color indican qué tan grande es la diferencia entre lo observado y lo
 
 
 
-```{r}
-# Suponiendo que tienes un dataframe con los promedios regionales de las otras variables:
-comparacion <- datos %>%
-  group_by(RegionWB) %>%
-  summarise(
-    Diversidad = mean(Diversidad, na.rm = TRUE),
-    Estres = mean(Estres, na.rm = TRUE),
-    EPI = mean(EPI, na.rm = TRUE)
-  )
 
-# Ejemplo de gráfico
-ggplot(comparacion, aes(x = Diversidad, y = EPI)) +
-  geom_point(size = 4, aes(color = RegionWB)) +
-  geom_smooth(method = "lm", se = FALSE, color = "black") +
-  labs(title = "Diversidad de materiales vs. Índice Ambiental (EPI)",
-       x = "Diversidad promedio de materiales",
-       y = "Índice de desempeño ambiental (EPI)")
-```
 
-```{r}
-# Selección de las variables a correlacionar
-cor_matrix <- comparacion %>%
-  select(-RegionWB) %>%
-  cor(use = "complete.obs")
-
-# Visualización de correlación
-library(corrplot)
-corrplot(cor_matrix, method = "circle", type = "upper", tl.col = "black")
-```
 
