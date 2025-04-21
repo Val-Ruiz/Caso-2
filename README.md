@@ -39,3 +39,9 @@ Se decidió añadir variables de
 Esto con el propósito de investigar qué relaciones existen entre actividades de extracción y balance exportación-importación de recursos con el estado ambiental de los países.
 
 Pregunta de investigación (tentativa): ¿Las actividades extractivas y los flujos materiales pueden ser descriptores del indice de desempeño ambiental?
+
+**Organización del git hub**
+datos.qmd es el documento de cuarto en el cual se extraen las variables de interes de las diferentes bases de datos. Con este se creó la base de datos de trabjao Datos.csv.
+
+el documento de quarto regresion-logística AIC se realizan un par de gráficas y 3 modelos de regresión logística multinomial, estos se conparan con su AIC. Tambien se agrega un modelo TOPSIS como ejemplo de otras utilidades que podría tener la base de datos de trabajo.
+en graficas-análisis se realizan más gráficas explirando direrentes variables y comparando los flujos de materias primas por región.
