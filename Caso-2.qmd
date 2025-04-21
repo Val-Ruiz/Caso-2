@@ -1,0 +1,605 @@
+---
+title: "Caso-2"
+format: pdf
+editor: visual
+---
+
+#Creación de base de datos de trabajo
+
+Inicialmente se planteó trabajar con la base de datos de Flujos Materiales Globales (GMF) sin embargo se observo que sus variables solo son cuantitativas, y se decidió completar con otras bases de datos temas relacionados a las categorías de esta base.
+
+Se decidieron juntar bases de \* Depósitos minerales \* Actividades Forestales \* Producción de energía eléctrica \* Estrés hídrico \* Indice de Desempeño Ambiental (EPI)
+
+Esto con el propósito de investigar que relaciones existen entre actividades de extracción de recursos con el estado ambiental de cada país.
+
+A continuación se muestra el código para unir las variables de interés de las diferentes bases de datos.
+
+```{r Administrador de paquetes}
+install.packages("pacman")
+library(pacman)
+```
+```{r Istalación de paquetes}
+#readxl: leer datos de un excel
+#tidiverse: manipulación de datos
+
+p_load("readxl", "tidyverse")
+```
+
+La primera base de datos incluye la clave del país, su nombre, el indice de Estrés hídrico de base como bajo, medio, alto o muy alto
+
+```{r Eliminar duplicados de agua}
+estres_hidrico <- read.csv2("Water_stress.csv") #lectura de la base
+
+#Elección de las columnas de interés
+estres_hidrico <- data.frame("ISO" =estres_hidrico$iso_a3, "Pais"=estres_hidrico$name_0, "Estres" = estres_hidrico$label, "RegionWB"= estres_hidrico$wb_region, stringsAsFactors = T)
+
+# Eliminación de duplicados
+estres_hidrico <- estres_hidrico[!duplicated(estres_hidrico$ISO),]
+#https://es.stackoverflow.com/questions/162937/eliminar-filas-con-id-duplicado-en-r
+
+#Eliminación de celdas sin datos
+estres_hidrico <- filter(estres_hidrico, Estres != "NoData")
+```
+
+La base de depositos minerales incluye el nombre y ubicación de los principales yacimientos minerales en el mundo, su ubicación y país en el que se encuentran, el tipo de minerales que se extraen y el origen del yacimiento
+
+```{r Depositos minerales}
+depositos_minerales <- read.csv("deposit.csv")
+```
+
+```{r Número de depósitos mineros}
+ndepositos <-depositos_minerales%>%  # Se selecciona la base de datos 
+  group_by(country)%>%  # Se agrupan los yacimientos por país
+  tally()  # Se cuenta el número de registros para cada  grupo
+colnames(ndepositos)<- c("Pais", "ndepositos") # Nombre de las columnas
+```
+
+La siguiente base de datos es del indice de desempeño ambiental. Solo se selecciona el país y el valor del indice. Las demás columnas en la base son índices primarios de diferentes aspectos ambientales a partir de los cuales se fue calculado el EPI.
+
+```{r}
+Environmental_Performance <- read.csv("epi2020results20200604.csv")
+Environmental_Performance <- Environmental_Performance[3:4]
+colnames(Environmental_Performance) <- c( "Pais", "EPI")
+```
+
+Se integran las bases de datos obtenidas hasta ahora en uno solo
+
+```{r}
+df_integral <- estres_hidrico %>% inner_join(ndepositos, by ="Pais", keep = F) # Se unen solo los registros cuyo 'Pais' se encuentre en ambas bases 
+#Keep = F elimina la columna que se usó como indicador, es decir el pais
+
+#Se repite el procedimiento con la tercer base de datos
+df_integral <- df_integral %>% inner_join(Environmental_Performance, by = "Pais", keep=F)
+
+```
+
+La siguiente base es la de producción de energía. En este caso no se incluye el nombre del pais pero sí su código. Se seleccionaron los datos del 2015 por ser los más recientes.
+
+```{r}
+produccion_energia <- read.csv("Energy_Output.csv")
+produccion_energia <- select(produccion_energia, c(Country.Code, X2015..YR2015.))
+colnames(produccion_energia) <- c("ISO", "Energía (GWh)") #nombres de las columnas
+df_integral <- df_integral %>% inner_join(produccion_energia, by = "ISO", keep=F) #Union a la base de datos de trabajo
+```
+
+La base de datos de actividades forestales se descargó de internet como un libro de excel, de este se seleccionó una página y se eliminaron filas que dejaban espacio antes de la tabla de datos, se conservaron las columnas que tenían la aportación de actividades madereras al Producto Interno Bruto y el porcentaje de la fuerza de trabajo que ocupa el sector.
+
+```{r}
+sector_forestal <- read_xlsx("fao forestry contribution.xlsx")
+colnames(sector_forestal) <- c("Pais", "Forestal % Trabajo", "Forestal% PIB")#Nombre de columnas
+df_integral <- df_integral %>% inner_join(sector_forestal, by = "Pais") #Unión
+```
+
+La base de datos de flujos materiales incluye para cada país el balance de Biomasa, Combustibles fósiles, materiales excavados, minerales metálico, minerales no metálicos y otros productos mixtos. De estos se clasifica su consumo interno, Importaciones, Exportaciones y calculos a partir de estos. Para unir a la base de datos solo se leccionó el balance Físico de materiales, el cuál tiene unidades de toneladas.
+
+```{r}
+Global_material_flows <- read.csv("GMFD.csv")
+GMF <- select(Global_material_flows, c(Country, Category, Flow.code, X2014)) #Se seleccionan las columnas de pais, categoria, codigo de la categoria, los datos del año 2014, nuevamente, el más reciente.
+GMF <- GMF %>%
+  filter(GMF$Flow.code == "PTB") #Seleccion de categoría Physical Trade Balance
+GMF$Category <- as.factor(GMF$Category) # La columna se convierte a factor para posterior manipulación
+```
+
+```{r}
+#Transformacion del dataframe para que las categorías sean una columna cada una y que cada registro corresponda a un solo país
+GMF <- GMF %>%spread(Category, X2014)
+GMF <- GMF[ , -c(2)] #https://youtu.be/PurMJhCBB_A?feature=shared
+colnames(GMF)[1] <- "Pais"
+```
+
+```{r}
+#Union a la base de datos 
+df_integral <- df_integral %>% inner_join(GMF, by = "Pais", keep=F)
+```
+
+Así pues las ultimas 10 columnas son diferentes categorías de los flujos (t).
+
+Por último exportamos la base como un archivo csv:
+
+```{r}
+write.csv(df_integral, "Datos.csv")
+```
+
+
+
+***Regresio logística AIC*** 
+
+```{r Paquetes}
+library(pacman) #Administrador de paquetes
+p_load("nnet", #Modelo logístico multinomial
+       "broom","kableExtra", "gtsummary", # ordenar la salida de un modelo
+       "tidyverse", "dplyr",  "knitr", #manipulación de datos
+       "ggplot2", "ggeffects", #gráficas
+       )
+
+```
+
+# Datos
+
+```{r Lectura de datos}
+datos <- read.csv("Datos.csv")
+head(datos)
+```
+
+#Exploración de datos
+
+```{r}
+datos$EPI_niveles <- datos$EPI  #Copia para pasar de variable numérica a categoría 
+datos$EPI_niveles <- cut(datos$EPI_niveles, breaks=3, labels = c("Bajo", "Medio", "Alto"))
+
+#Convertir estas variables chr a factores
+
+datos$Estres <- as.factor(datos$Estres)
+datos$Estres <- factor(datos$Estres, ordered = TRUE, #Ordenar los niveles del factor
+                       levels = c("Low (<10%)", "Low - Medium (10-20%)",  
+                                  "Medium - High (20-40%)", "High (40-80%)",
+                                  "Extremely High (>80%)" ))
+datos$RegionWB <- as.factor(datos$RegionWB)
+
+```
+
+```{r Frecuencias de nivel de estres hídrico por país}
+#En lugar de summarize se aplica tally
+
+Estres_x_region <- datos %>%  # Se selecciona la base de datos 
+  group_by(RegionWB, Estres) %>%  # Se agrupan los yacimientos por país
+  tally()  # Se cuenta el número de registros para cada  grupo
+colnames(Estres_x_region) <- c("Region", "Nivel", "Frecuencia")
+```
+
+```{r Distribución estrés hídrico}
+ggplot(Estres_x_region, aes(x = Nivel, y = Frecuencia)) +
+  geom_bar(
+    aes(fill = Region), stat = "identity", 
+    position = position_dodge (0.9)
+  )
+```
+
+```{r}
+#Visualizamos dispersión de los datos
+datos %>%
+ggplot(aes(EPI, RegionWB,colour=EPI_niveles)) +
+geom_jitter(height = 0,
+width = .1,
+show.legend = FALSE) 
+```
+
+```{r}
+p_load(GGally)
+datos <- datos[-12]
+```
+
+```{r Coordenadas paralelas}
+ggparcoord(data = datos,
+           columns= 11:21,
+           groupColumn = "RegionWB",
+           scale="center",
+           title = "Coordenadas paralelas de Flujos Mundiales")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+           
+```
+
+
+***Modelo de Regresión Logística Multinomial***
+
+Este modelo se basa en la siguiente ecuación $$ \ln(\frac{P_{N}}{P_{A}}) = β_{0} + β_{1}X_{1} + ... + β_{k}X_{k} $$ En donde se compara la probabilidad de una categoría $P_n$ contra la probabilidad de una categoría de referencia $P_A$, y el lado derecho de la ecuación corresponde al coeficiente de la comparación
+
+```{r Modelo de regresión}
+#Regresión logística multinomial
+#Describir el nivel de desempeño ambiental a partir de el flujo de materiales
+# u otras actividades económico
+
+#Usando las variables que agregamos
+fit_1 <- multinom(EPI_niveles ~ Estres + 
+                   ndepositos + 
+                   Energía..GWh. + 
+                   Forestal..PIB, data = datos)
+
+```
+
+Para interpretar el modelo de regresión logistica se suele trabajar con los Odd Ratios (OR) los cuales se obtienen al despejar el logaritmo la ecuación dada: $$ \frac{P_{N}}{P_{A}} = e^{β_{0} + β_{1}X_{1} + ... + β_{k}X_{k}}$$
+
+```{r Obtención Odd Ratios}
+OR_1 <- exp(coefficients(fit_1))
+OR_1
+```
+
+El modelo 1 tomo como referencia un nivel de EPI bajo con un nivel de estres hídrico Extremely High.
+
+Se puede observar que la mayor probabilidad del modelo corresponde al EPI Alto con un bajo nivel de estres hídrico. Se podría razonar que el EPI y el nivel de estres son inversamente proporcionales, sin embargo también existe una alta probabilidad de que países con alto estres hidrico tengan en EPI alto por lo que se descarta la primera explicación.
+
+Exceptuando el nivel de estres medio-alto, todos los niveles de estres tienen OD mayores a 1 por lo que tinen mayor probabilidad de explicar el EPI que el nivel base. Las otras variables tienen OD cercanos a uno o menores, lo que indica que tienen menores probabilidades de predecir el EPI que la categoría base.
+
+```{r}
+#Flujo de materias primas
+fit_2 <- multinom (EPI_niveles ~ Biomass+ 
+                    Excavated.earthen.materials..including.soil..nec + 
+                    Fossil.fuels + 
+                    Metal.ores +
+                    Non.metallic.minerals, data=datos)
+
+OR_2 <- exp(coefficients(fit_2))
+OR_2
+```
+
+Este modelo también usa EPI Bajo como categoría de base. En este modelo todos los OD son iguales o muy cercanos a 1 por lo que todas las variables tienen prácticamente la misma capacidad de predicción.
+
+```{r}
+#Flujo de productos
+fit_3 <- multinom (EPI_niveles ~ Mixed.and.complex.products.nec.+ 
+                    Products.from.fossil.fuels+
+                    Products.from.biomass+
+                    Products.from.non.metallic.minerals + 
+                    Waste.for.final.treatment.and.disposal, data = datos)
+
+OR_3 <- exp(coefficients(fit_3))
+OR_3
+```
+
+Similar al modelo 2, en el modelo 3 todas las variables se relacionan en la misma medida con la variable dependiente
+
+## Comparando los modelos
+
+```{r}
+fit_1$AIC
+fit_2$AIC
+fit_3$AIC
+#Recordatorio: AIC más pequeño, mejor adaptación a los datos
+```
+
+```{r}
+# Finalmente se realiza un modelo usando todas las variables
+fit_completo <- multinom(EPI_niveles ~ Estres + 
+                    Biomass+ 
+                    ndepositos + 
+                    Forestal..PIB+
+                    Energía..GWh. +
+                    Excavated.earthen.materials..including.soil..nec + 
+                    Fossil.fuels + 
+                    Metal.ores +
+                    Non.metallic.minerals+
+                    Mixed.and.complex.products.nec.+ 
+                    Products.from.fossil.fuels+
+                    Products.from.biomass+
+                    Products.from.non.metallic.minerals + 
+                    Waste.for.final.treatment.and.disposal, data = datos)
+fit_completo$AIC
+```
+
+Se logra mejorar el AIC por muy poco
+
+
+
+
+***Análisis multicriterio***
+
+El siguiente analisis, TOPSIS, permite ordenar opciones de acuerdo al cumplimiento de criterios favorables o desfavorables En el ejemplo, se pueden identificar qué paises tienen mayor extracción y exportacion de biomasa junto con su mayor aparte al PIB, serviría para identificar los paises que dependen más de esta actividad y deberian tener sistemas de producción sustentable
+
+```{r Modelo Multicriterio}
+p_load("topsis") 
+
+#crear dataframe con las variables de interés y convertir a matriz
+matriz <- datos[c(17, 10,11)]
+matriz <- as.matrix(matriz)
+
+#Definir vector con el peso o importancia que se le da a cada variable
+ponderacion <- c(2,4,4) 
+
+#Definir el comportamiento que cada variable tendrá en el ranking. 
+# "-" si se priorizan los valores mínimos y "+" si se busca maximizar la variable 
+minmax <-c("-", "+", "-")
+
+
+multicriterio <- topsis(matriz, ponderacion, minmax) #Código del modelo
+multicriterio
+
+ranking <- arrange(as.data.frame(multicriterio), rank)
+ranking  # Visualización con el ranking en orden descendente
+
+```
+
+Nota: Si se quisiera incluir el Estres en un analisis multicriterio se tendría que convertir a una variable numérica, con el siguiente código
+
+matriz$Estres <- case_when(
+  matriz$Estres == "Low (\<10%)" \~ 1, matriz$Estres == "Low - Medium (10-20%)" ~ 2,
+  matriz$Estres =="Medium - High (20-40%)" \~ 3, matriz$Estres == "High (40-80%)" ~ 4,
+  matriz$Estres == "Extremely High (\>80%)" \~ 5)
+
+
+
+
+***Gráficas y análisis***
+
+```{r}
+library(scales) #Ajustar las gráficas
+library(car) #Manejar datos estadísticos 
+library(tidyverse) #Conjunto de paquetes
+library(emmeans) #Calcular medias ajustadas
+library(ggplot2) #Creación de gráficos 
+library(ggpubr) #Mejorar gráficos 
+library(corrplot) #Hacer mapas de clasificación 
+theme_set(theme_pubr())
+```
+
+```{r}
+datos <- read.csv("Datos.csv")
+colnames(datos)
+```
+
+En el siguiente código se plantea contar que materiales usa cada país y posteriormente sumarlos para sacar un promedio según la región en la que se encuentra. Con el objetivo de ver que regiones usan una mayor variedad de recursos para representarlos en una gráfica.
+```{r}
+Diversidad <- datos %>%
+  rowwise() %>% #Aplicar funciones fila por fila (país por país)
+  mutate(Diversidad = sum(c_across(c("Biomass", "Excavated.earthen.materials..including.soil..nec", "Fossil.fuels", "Metal.ores", "Mixed.and.complex.products.nec.", "Non.metallic.minerals", "Products.from.biomass", "Products.from.fossil.fuels", "Products.from.metals", "Products.from.non.metallic.minerals", "Waste.for.final.treatment.and.disposal")) > 0, na.rm = TRUE)) %>% 
+  #"mutate" crea una nueva variable de nombre "Diversidad", que contiene el conteo.
+  #"c_across" seleccionas las columnas que tienen distintos tipos de materiales.
+  #"> 0" si el país usa ese material, si el valor es mayor que cero, entonces da TRUE, si no, da FALSE.
+  #"sum(..)" Cuenta cuantos materiales si fueron usados.
+  #"na.rm" ignora los NA.
+  ungroup () %>% #Trabaja con los datos completos sin agrupamientos.
+  group_by(RegionWB) %>% #se agrupan los países según su región.
+  summarise(Diversidad = mean(Diversidad, na.rm = TRUE)) %>%
+  arrange(desc(Diversidad)) #Calcula el promedio de los materiales usados entre los paises de cada región 
+Diversidad
+```
+
+Diversidad alta significa que los países de esa región usan muchos tipos diferentes de materiales (como biomasa, metales, combustibles, etc.). Caso contrario a los paises con baja diversidad, ya que usan menos materiales, es probable que sea porque su economía se centra únicamente en ciertos materiales.
+
+```{r}
+# Creación del gráfico de barras para visualizar el promedio de materiales que usa cada región.
+ggplot(Diversidad, aes(x = reorder(RegionWB, Diversidad), y = Diversidad)) +
+  geom_col(fill = "darkgreen") +
+  labs(title = "Promedio de materiales usados por región", x = "Región", y = "Promedio")
+```
+
+Creación de gráficas para mostrar la distribución total de determinados materiales que han sido utilizados por cada región, según los muestra la base de datos que se tiene.
+
+Distribución de biomasa.
+```{r}
+Biomasa_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Biomass, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Biomasa_region
+
+ggplot(Biomasa_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "green") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Biomasa por región",
+    x = "Región",
+    y = "Biomasa"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+Creación de gráfico de dispersión para ver la relación entre el EPI y la distribución de la biomasa.
+```{r}
+ggplot(datos, aes(x = Biomass, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) + #modifica el tamaño de los puntos
+  geom_smooth(method = "lm", se = FALSE, color = "gray") + #linea de tendencia, usa un modelo de regresión lineal, "se = FALSE" son los intervalos de confianza que no se muestran.
+  labs(
+    title = "Relación entre la Biomasa y el EPI",
+    x = "Balanza de biomasa",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
+Distribución de energía.
+```{r}
+Energia_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Energía..GWh., na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Energia_region
+
+ggplot(Energia_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "blue") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Energía por región",
+    x = "Región",
+    y = "Energía"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+EPI y la distribución de energía.
+```{r}
+ggplot(datos, aes(x = Energía..GWh., y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre la Energía y el EPI",
+    x = "Balanza de Energía",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
+Distribución de combustibles fósiles.
+```{r}
+Combustible_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Fossil.fuels, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Combustible_region
+
+ggplot(Combustible_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "black") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Combustible por región",
+    x = "Región",
+    y = "Combustible"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+EPI y la distribución de combustibles fósiles.
+```{r}
+ggplot(datos, aes(x = Fossil.fuels, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre el Combustible y el EPI",
+    x = "Balanza de Combustible",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
+Distribución de metales.
+```{r}
+Metal_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Metal.ores, na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+Metal_region
+
+ggplot(Metal_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "gray") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Metales por región",
+    x = "Región",
+    y = "Metales"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+EPI y la distribución de metales.
+```{r}
+ggplot(datos, aes(x = Metal.ores, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre el Metales y el EPI",
+    x = "Balanza de Metales",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
+Distribución de productos mixtos y complejos.
+```{r}
+Mix_region <- datos %>%
+  group_by(RegionWB) %>%
+  summarise(cantidad = sum(Mixed.and.complex.products.nec., na.rm = TRUE)) %>%
+  arrange(desc(cantidad))
+
+ggplot(Mix_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "pink") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "Productos mixtos por región",
+    x = "Región",
+    y = "Productos mixtos"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+EPI y la distribución de productos mixtos y complejos
+```{r}
+ggplot(datos, aes(x = Mixed.and.complex.products.nec., y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre Productos mixtos y el EPI",
+    x = "Balanza de Productos",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
+Distribución de no.metales.
+```{r}
+ggplot(NoMetal_region, aes(x = reorder(RegionWB, cantidad), y = cantidad)) +
+  geom_col(fill = "orange") +
+  coord_flip() +  # Para que las regiones estén en el eje Y
+  labs(
+    title = "No-Metales por región",
+    x = "Región",
+    y = "No-Metales"
+  ) +
+  scale_y_continuous(labels = comma) + 
+  theme_minimal()
+```
+
+EPI y la distribución de no-metales
+```{r}
+ggplot(datos, aes(x = Non.metallic.minerals, y = EPI, color = RegionWB)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray") +
+  labs(
+    title = "Relación entre los No-metales y el EPI",
+    x = "Balanza de No-metales",
+    y = "Índice de Desempeño Ambiental (EPI)"
+  ) +
+  theme_minimal()
+```
+
+Gráficas de barras. 
+En el conjunto de datos, las columnas extraidas de la base de datos "Flujos de Materiales Globales" (GMF) que representan flujos de materiales (como biomasa, combustibles fósiles, minerales, etc.). 
+Estos flujos pueden ser: 
+Positivos → cuando un país produce, importa o acumula material.
+Negativos → cuando un país exporta, pierde o consume material.
+
+Entonces, si un país tiene biomasa, combustibles fósiles, metales, no-metales, etc. con valores negativos, y se suman todos los países de una región, el total puede dar negativo.
+
+
+Gráficos de dispersión.
+En cada uno se planteo analizar la relación de el índice de desempeño ambiental (clasificados en "Alto", "Medio" y "Bajo") con el flujo de los materiales, previamente escogidos, de cada país. 
+Implementar el modelo de regresión en la gráfica permite ver si hay una relación positiva o negativa entre el uso de materiales y el desempeño ambiental.
+
+
+
+
+***Análisis categórico***
+
+Análisis categórico para comprobar el nivel de desempeño ecológico (EPI) depende según sea la región geográfica del mundo, usando chi-cuadrado y visualizaciones corrplot.
+```{r}
+datos <- datos %>%
+  mutate(EPI = ntile(EPI, 3), 
+         EPI = factor(EPI, levels = 1:3, labels = c("Bajo", "Medio", "Alto"))) #Se convierte la variable numérica en categórica, dividiendola en 3 niveles.
+tabla <- table(datos$RegionWB, datos$EPI) #Creación de tabla que contenga la Región y EPI. 
+chi2 <- chisq.test(tabla) #chi-cuadrado para evaluar si hay relación entre región y nivel del EPI
+chi2
+corrplot(chi2$residuals, is.cor = FALSE, main = "Región vs EPI") #Visualización de residuos de chi-cuadrado
+```
+
+X-cuadrado (estadístico de prueba) : 81.67, un valor alto, que mide cuán diferentes son las frecuencias observadas vs esperadas.
+
+Valor p : 0.00000000000198, es extremadamente pequeño, lo que dice que si hay una relación significativa entre cada región y el EPI. La distribución del EPI no es igual en todas las regiones 
+
+Este gráfico muestra los residuos del chi-cuadrado, para ver si hay una asociación estadísticamente significativa entre estas dos variables.
+Círculos azules : Hay más países de los esperados en esa combinación de Región y EPI.
+Círculos rojos : Hay menos países de los esperados.
+
+Tamaño y color indican qué tan grande es la diferencia entre lo observado y lo esperado.
